@@ -15,6 +15,7 @@ function OrderStatus() {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('active') // 'active' or 'history'
   const audioCtxRef = useRef(null)
+  const prevOrderStatusesRef = useRef({})
 
   // Warm up AudioContext on first user interaction — Chrome blocks audio
   // until the user has clicked/typed on the page (autoplay policy).
@@ -91,7 +92,23 @@ function OrderStatus() {
   const fetchOrders = async () => {
     try {
       const response = await api.get(`/orders/student/${user.studentId}`)
-      setOrders(response.data.data)
+      const fetched = response.data.data
+
+      // Detect any order that just became 'ready' since last poll
+      fetched.forEach(order => {
+        const prev = prevOrderStatusesRef.current[order._id]
+        if (prev && prev !== 'ready' && order.orderStatus === 'ready') {
+          toast.success(`Order #${order.orderNumber} is ready for pickup! 🍽️`, { autoClose: false })
+          playAlert()
+        }
+      })
+
+      // Update tracked statuses
+      const updated = {}
+      fetched.forEach(o => { updated[o._id] = o.orderStatus })
+      prevOrderStatusesRef.current = updated
+
+      setOrders(fetched)
       setLoading(false)
     } catch (error) {
       console.error('Error fetching orders:', error)
