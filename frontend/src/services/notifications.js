@@ -23,7 +23,12 @@ export const registerFCMToken = async () => {
       return;
     }
 
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    // Explicitly register the service worker so Firebase uses the correct one
+    // on mobile Chrome (otherwise it may fail to find it)
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    await navigator.serviceWorker.ready;
+
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: swRegistration });
     if (!token) {
       console.warn('[FCM] No token returned — service worker may not be registered');
       return;
