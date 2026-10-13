@@ -313,6 +313,7 @@ export const notifyStudent = async (req, res) => {
 
     const student = await User.findOne({ studentId: order.studentId });
 
+    let fcmStatus = 'no_token';
     if (student?.fcmToken) {
       try {
         await getAdmin().messaging().send({
@@ -326,9 +327,10 @@ export const notifyStudent = async (req, res) => {
             orderNumber: order.orderNumber,
           },
         });
+        fcmStatus = 'sent';
       } catch (fcmError) {
-        // Log FCM error but don't fail the whole request
         console.error('FCM send error:', fcmError.message);
+        fcmStatus = fcmError.message;
       }
     }
 
@@ -338,6 +340,7 @@ export const notifyStudent = async (req, res) => {
     res.json({
       success: true,
       message: 'Student notified successfully',
+      fcmStatus,
       data: order,
     });
   } catch (error) {
